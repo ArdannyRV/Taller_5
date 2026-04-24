@@ -5,7 +5,7 @@ import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text } from "react-native";
 
-export function ListaProyectos() {
+export function ListaProyectos({ searchQuery }: { searchQuery?: string }) {
   const [proyectos, setProyectos] = useState<ProyectoTesis[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +16,9 @@ export function ListaProyectos() {
     setError(null);
 
     try {
-      const data = await proyectoApi.getAll();
+      const data = searchQuery
+        ? await proyectoApi.search(searchQuery)
+        : await proyectoApi.getAll();
       setProyectos(data);
     } catch (e) {
       const mensaje = e instanceof Error ? e.message : "Error desconocido";
@@ -24,7 +26,7 @@ export function ListaProyectos() {
     } finally {
       if (!silent) setCargando(false);
     }
-  }, []);
+  }, [searchQuery]);
 
   useEffect(() => {
     cargarProyectos();
@@ -56,7 +58,7 @@ export function ListaProyectos() {
     <FlatList
       data={proyectos}
       keyExtractor={(p) => p.id}
-      renderItem={({ item }) => <ProyectoCard proyecto={item} />}
+      renderItem={({ item }) => <ProyectoCard proyecto={item} onDeleteSuccess={() => cargarProyectos(true)} />}
       contentContainerStyle={styles.lista}
     />
   );

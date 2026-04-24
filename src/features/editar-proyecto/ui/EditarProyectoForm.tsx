@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
+// [RETO 3]: Feature de edición con formulario pre-llenado.
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   StyleSheet, Alert, ActivityIndicator, Platform,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useForm, Controller } from 'react-hook-form';
-import type { CreateProyectoDto, EstadoProyecto }
+import { useRouter } from 'expo-router';
+import type { EstadoProyecto, ProyectoTesis }
   from '@entities/proyecto-tesis/model/types';
-import { createProyecto } from '../api/createProyecto';
-
-const ESTADOS: EstadoProyecto[] = ['En Progreso', 'Completado', 'Suspendido'];
+import { proyectoApi } from '@entities/proyecto-tesis/api/proyectoApi';
 
 interface Props {
+  proyectoInicial: ProyectoTesis;
   onSuccess?: () => void;
 }
 
@@ -27,20 +28,23 @@ interface FormValues {
   estado: EstadoProyecto;
 }
 
-export function RegistroProyectoForm({ onSuccess }: Props) {
+const ESTADOS: EstadoProyecto[] = ['En Progreso', 'Completado', 'Suspendido'];
+
+export function EditarProyectoForm({ proyectoInicial, onSuccess }: Props) {
+  const router = useRouter();
   const [cargando, setCargando] = useState(false);
-  // [RETO 5]: Validaciones estrictas (Regex, fechas y campos obligatorios).
+  // [RETO 5]: Validaciones del formulario usando React Hook Form.
   const { control, handleSubmit, formState: { errors } } = useForm<FormValues>({
     defaultValues: {
-      titulo: '',
-      descripcion: '',
-      autores: '',
-      tutor_docente: '',
-      tecnologias_utilizadas: '',
-      fecha_inicio: '',
-      fecha_fin: '',
-      repositorio_github: '',
-      estado: 'En Progreso',
+      titulo: proyectoInicial.titulo,
+      descripcion: proyectoInicial.descripcion,
+      autores: proyectoInicial.autores,
+      tutor_docente: proyectoInicial.tutor_docente,
+      tecnologias_utilizadas: proyectoInicial.tecnologias_utilizadas,
+      fecha_inicio: proyectoInicial.fecha_inicio,
+      fecha_fin: proyectoInicial.fecha_fin || '',
+      repositorio_github: proyectoInicial.repositorio_github || '',
+      estado: proyectoInicial.estado,
     },
   });
 
@@ -59,12 +63,12 @@ export function RegistroProyectoForm({ onSuccess }: Props) {
   const onSubmit = async (data: FormValues) => {
     try {
       setCargando(true);
-      await createProyecto(data);
-      Alert.alert('¡Éxito!', 'Proyecto de tesis registrado correctamente.', [
-        { text: 'OK', onPress: () => onSuccess?.() }
+      await proyectoApi.update(proyectoInicial.id, data);
+      Alert.alert('¡Éxito!', 'Proyecto actualizado correctamente.', [
+        { text: 'OK', onPress: () => router.replace('/') }
       ]);
     } catch (error) {
-      Alert.alert('Error', 'No se pudo guardar el proyecto. Verifica tu conexión.');
+      Alert.alert('Error', 'No se pudo actualizar el proyecto. Verifica tu conexión.');
     } finally {
       setCargando(false);
     }
@@ -90,7 +94,7 @@ export function RegistroProyectoForm({ onSuccess }: Props) {
       contentContainerStyle={styles.scroll}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.titulo}>Nuevo Proyecto de Tesis</Text>
+      <Text style={styles.titulo}>Editar Proyecto de Tesis</Text>
       <Text style={styles.subtitulo}>ESFOT — Tecnología Superior en Desarrollo de Software</Text>
 
       <View style={styles.campoContenedor}>
@@ -329,7 +333,7 @@ export function RegistroProyectoForm({ onSuccess }: Props) {
       >
         {cargando
           ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.botonTexto}>Registrar Proyecto</Text>
+          : <Text style={styles.botonTexto}>Guardar Cambios</Text>
         }
       </TouchableOpacity>
     </ScrollView>

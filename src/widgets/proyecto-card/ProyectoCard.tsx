@@ -1,6 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Linking, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import type { ProyectoTesis } from '@entities/proyecto-tesis/model/types';
+import { proyectoApi } from '@entities/proyecto-tesis/api/proyectoApi';
  
 const BADGE_COLOR: Record<string, string> = {
   'En Progreso': '#3498DB',
@@ -10,16 +12,46 @@ const BADGE_COLOR: Record<string, string> = {
  
 interface Props {
   proyecto: ProyectoTesis;
+  onDeleteSuccess?: () => void;
 }
- 
-export function ProyectoCard({ proyecto }: Props) {
+
+export function ProyectoCard({ proyecto, onDeleteSuccess }: Props) {
+  const router = useRouter();
+
   const abrirRepo = () => {
     if (proyecto.repositorio_github)
       Linking.openURL(proyecto.repositorio_github);
   };
- 
+
+  const handleDelete = async () => {
+    Alert.alert(
+      'Eliminar Proyecto',
+      '¿Estás seguro de que deseas eliminar este proyecto? Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await proyectoApi.delete(proyecto.id);
+              onDeleteSuccess?.();
+            } catch (error) {
+              Alert.alert('Error', 'No se pudo eliminar el proyecto.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
-    <View style={styles.tarjeta}>
+    <TouchableOpacity
+      style={styles.tarjeta}
+      onPress={() => router.push(`/proyecto/${proyecto.id}`)}
+      activeOpacity={0.7}
+    >
+      {/* [RETO 2]: Navegación al detalle del proyecto */}
       {/* Encabezado: título + badge de estado */}
       <View style={styles.encabezado}>
         <Text style={styles.titulo} numberOfLines={2}>{proyecto.titulo}</Text>
@@ -54,13 +86,18 @@ export function ProyectoCard({ proyecto }: Props) {
         )}
       </View>
  
-      {/* Link a GitHub */}
+{/* Link a GitHub */}
       {proyecto.repositorio_github && (
         <TouchableOpacity style={styles.repoBoton} onPress={abrirRepo}>
           <Text style={styles.repoTexto}>Ver en GitHub →</Text>
         </TouchableOpacity>
       )}
-    </View>
+
+      {/* [RETO 4]: Eliminación de proyecto con diálogo de confirmación */}
+      <TouchableOpacity style={styles.eliminarBoton} onPress={handleDelete}>
+        <Text style={styles.eliminarTexto}>Eliminar Proyecto</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
   );
 }
  
@@ -88,4 +125,7 @@ const styles = StyleSheet.create({
   repoBoton: { marginTop: 12, paddingVertical: 8, paddingHorizontal: 12,
     backgroundColor: '#EBF5FB', borderRadius: 8, alignSelf: 'flex-start' },
   repoTexto: { color: '#2E6DA4', fontSize: 13, fontWeight: '600' },
+  eliminarBoton: { marginTop: 16, paddingVertical: 10, paddingHorizontal: 12,
+    backgroundColor: '#FDEEEE', borderRadius: 8, alignSelf: 'flex-start' },
+  eliminarTexto: { color: '#E74C3C', fontSize: 13, fontWeight: '600' },
 });
